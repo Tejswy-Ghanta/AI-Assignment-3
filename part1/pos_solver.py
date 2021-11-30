@@ -5,8 +5,6 @@
 #
 # (Based on skeleton code by D. Crandall)
 #
-
-
 import random
 import math
 
@@ -16,8 +14,7 @@ import math
 # that we've supplied.
 #
 class Solver:
-    # Calculate the log of the posterior probability of a given sentence
-    #  with a given part-of-speech labeling. Right now just returns -999 -- fix this!
+    
     # def get_file_data(filename):
     def __init__(self):
         self.corpus = {}
@@ -25,16 +22,22 @@ class Solver:
         self.POS_prob = {'adj':0, 'adv':0, 'adp':0, 'conj':0, 'det':0, 'noun':0, 'num':0, 'pron':0, 'prt':0, 'verb':0, 'x':0, '.':0}
         self.e_pr = {}
         self.t_pr  ={}
+        self.grandParentWordTag = {}
+        self.grandParentPOS = {}
 
+    # Calculate the log of the posterior probability of a given sentence
+    #  with a given part-of-speech labeling. Right now just returns -999 -- fix this!
     def posterior(self, model, sentence, label):
-        if model == "Simple":
-            return -999
-        elif model == "HMM":
-            return -999
-        elif model == "Complex":
-            return -999
-        else:
-            print("Unknown algo!")
+        sum = 0
+        total_POS = 0
+        for i in self.POS_prob.values():
+            total_POS = total_POS+i
+
+        for word in list(sentence):
+            for pos in label:
+                if word in self.corpus.keys() and pos in self.corpus[word].keys() and self.corpus[word][pos]!=0 and self.POS_prob[pos]!=0 :
+                    sum = sum + (math.log10((self.corpus[word][pos]/self.POS_prob[pos])) + math.log10(self.POS_prob[pos]/total_POS)) 
+        return sum
 
     # Do the training!
     #
@@ -50,8 +53,8 @@ class Solver:
 
         self.e_pr = self.getEmissionProbabilities() 
         self.t_pr =self.getTransitionProbabilities(data)
-        print('e_pr - ',self.e_pr)  
-        print('t_pr - ',self.t_pr)
+        self.grandParentWordTag = self.getParentWordProbability(data)
+        self.grandParentPOS = self.getGrandparentPOSProbability(data)
         pass
 
     # Functions for each algorithm. Right now this just returns nouns -- fix this!
@@ -99,12 +102,12 @@ class Solver:
 
         return transition_p
 
-    def dptable(self,V,observed):
+    # def dptable(self,V,observed):
 
-        for state in V[0]:
-            yield"%.7s: " % state + " ".join("%.7s" % ("%f" % v[state]["prob"]) for v in V)
-        print("%40s: %s " % ("Observed sequence", str(observed)))
-        N=len(observed)
+    #     for state in V[0]:
+    #         yield"%.7s: " % state + " ".join("%.7s" % ("%f" % v[state]["prob"]) for v in V)
+        # print("%40s: %s " % ("Observed sequence", str(observed)))
+        # N=len(observed)
 
     def hmm_viterbi(self, sentence):
         # problem definition
@@ -139,8 +142,8 @@ class Solver:
                     max_prob = max_tr_prob * emit_p[observations[t]][st]
                 V[t][st] = {"prob": max_prob, "prev": prev_st_selected}
 
-        for line in self.dptable(V,observations):
-            print(line)
+        # for line in self.dptable(V,observations):
+        #     print(line)
 
         viterbi_seq = []
         max_prob = 0.0
@@ -156,57 +159,61 @@ class Solver:
             viterbi_seq.insert(0, V[t + 1][previous]["prev"])
             previous = V[t + 1][previous]["prev"]
 
-        print("%40s: %s" % ("Most likely sequence by Viterbi:", str(viterbi_seq)))
-
-        
-                # final_POS = []
-                
-                # non_zero_paths = []
-                # costs = {}
-                # #viterbi initialization
-                # key_for_tp = 's'
-                # for j in self.prob:
-                #     if j not in costs.keys() and self.t_pr[key_for_tp][j]!=0 and self.e_pr[sentence[0]][j]!=0:
-                #     # emission probability * transition probability
-                #         costs[j] =self.e_pr[sentence[0]][j]  * self.t_pr[key_for_tp][j] 
-        #         non_zero_paths.append(j)
-
-        # print('non_zero_paths - ',non_zero_paths)
-        # print('cost - ',costs)
-        # #viterbi chain construction
-        # i= 1 
-        
-        # temp_c = {}
-
-        # for i in range(1,len(sentence)):
-        #     if sentence[i] not in self.e_pr.keys():
-        #         #words not in corpus? 
-        #         final_POS.append('noun')
-        #         self.e_pr[sentence[i]]={'adj':1/12, 'adv':1/12, 'adp':1/12, 'conj':1/12, 'det':1/12, 'noun':1/12, 'num':1/12, 'pron':1/12, 'prt':1/12, 'verb':1/12, 'x':1/12, '.':1/12}
-        #     for nz in non_zero_paths:
-        #         for e in self.e_pr[sentence[i]].keys():
-        #             if self.e_pr[sentence[i]][e]!=0:
-        #                 for t in self.t_pr[e].keys():
-        #                     if self.t_pr[e][t] !=0:
-        #                         #don't modify costs here
-        #                         #use a temp dict, to get keys and cost values, then find max and append to costs
-        #                         temp_c[t] = self.e_pr[sentence[i]][e]*self.t_pr[e][t]*costs[nz]
-                                
-        #         print('temp_c - ',temp_c) 
-        #         #find max of nz-e
-                           
+        # print("%40s: %s" % ("Most likely sequence by Viterbi:", str(viterbi_seq)))
         return viterbi_seq
 
+    def getParentWordProbability(self,data):
+        grandParentWordTags = {}
+       
+        for each_sentence in data:
+            for i in range(1,len(each_sentence[0])-1):
+                if not each_sentence[0][i] in grandParentWordTags.keys():
+                    grandParentWordTags[each_sentence[0][i]] = {}
+                    for j in self.prob:
+                        grandParentWordTags[each_sentence[0][i]][j] = 0
+                grandParentWordTags[each_sentence[0][i]][each_sentence[1][i-1]] = grandParentWordTags[each_sentence[0][i]][each_sentence[1][i-1]] + 1
+             
+        return grandParentWordTags
+
+    # GrandparentPOSTag probability
+    def getGrandparentPOSProbability(self,data):
+        grandTransition_p = {'adj':{'adj':0, 'adv':0, 'adp':0, 'conj':0, 'det':0, 'noun':0, 'num':0, 'pron':0, 'prt':0, 'verb':0, 'x':0, '.':0},'adv':{'adj':0, 'adv':0, 'adp':0, 'conj':0, 'det':0, 'noun':0, 'num':0, 'pron':0, 'prt':0, 'verb':0, 'x':0, '.':0},'adp':{'adj':0, 'adv':0, 'adp':0, 'conj':0, 'det':0, 'noun':0, 'num':0, 'pron':0, 'prt':0, 'verb':0, 'x':0, '.':0},
+        'conj':{'adj':0, 'adv':0, 'adp':0, 'conj':0, 'det':0, 'noun':0, 'num':0, 'pron':0, 'prt':0, 'verb':0, 'x':0, '.':0},'det':{'adj':0, 'adv':0, 'adp':0, 'conj':0, 'det':0, 'noun':0, 'num':0, 'pron':0, 'prt':0, 'verb':0, 'x':0, '.':0},'noun':{'adj':0, 'adv':0, 'adp':0, 'conj':0, 'det':0, 'noun':0, 'num':0, 'pron':0, 'prt':0, 'verb':0, 'x':0, '.':0},'num':{'adj':0, 'adv':0, 'adp':0, 'conj':0, 'det':0, 'noun':0, 'num':0, 'pron':0, 'prt':0, 'verb':0, 'x':0, '.':0},'pron':{'adj':0, 'adv':0, 'adp':0, 'conj':0, 'det':0, 'noun':0, 'num':0, 'pron':0, 'prt':0, 'verb':0, 'x':0, '.':0},'prt':{'adj':0, 'adv':0, 'adp':0, 'conj':0, 'det':0, 'noun':0, 'num':0, 'pron':0, 'prt':0, 'verb':0, 'x':0, '.':0},
+        'verb':{'adj':0, 'adv':0, 'adp':0, 'conj':0, 'det':0, 'noun':0, 'num':0, 'pron':0, 'prt':0, 'verb':0, 'x':0, '.':0},'x':{'adj':0, 'adv':0, 'adp':0, 'conj':0, 'det':0, 'noun':0, 'num':0, 'pron':0, 'prt':0, 'verb':0, 'x':0, '.':0},'x':{'adj':0, 'adv':0, 'adp':0, 'conj':0, 'det':0, 'noun':0, 'num':0, 'pron':0, 'prt':0, 'verb':0, 'x':0, '.':0},'.':{'adj':0, 'adv':0, 'adp':0, 'conj':0, 'det':0, 'noun':0, 'num':0, 'pron':0, 'prt':0, 'verb':0, 'x':0, '.':0}}
+        for each_sentence in data:
+            for i in range(len(each_sentence[0])-2):
+                grandTransition_p[each_sentence[1][i]][each_sentence[1][i+2]] = grandTransition_p[each_sentence[1][i]][each_sentence[1][i+2]] + 1
+
+        for i in grandTransition_p.keys():
+            sum_key = sum(grandTransition_p[i].values())
+            for j in grandTransition_p[i].keys():
+                if sum_key!=0:
+                    grandTransition_p[i][j] = grandTransition_p[i][j]/sum_key
+
+        return grandTransition_p
+
+    def gibbsSampling(self,no_samples,sentence):
+        x = [[] for _ in range(no_samples)]
+        x[0]= [random.choice(self.prob) for _ in range(len(sentence))]
+
+        # for i in range(1,no_samples):
+        #     x[i] = x[i-1]
+        #     for j in range(len(x[0])):
+        #         #calc P(x[i][j]|remaining)
+        #         print()
+
+        #make it x[1000]
+        return x[0]
+
     def complex_mcmc(self, sentence):
-        return [ "noun" ] * len(sentence)
-
-
-
+        # MCMC inference code 
+        
+        return self.gibbsSampling(1000,sentence)
     # This solve() method is called by label.py, so you should keep the interface the
     #  same, but you can change the code itself. 
     # It should return a list of part-of-speech labelings of the sentence, one
     #  part of speech per word.
-    #
+    
     def solve(self, model, sentence):
         if model == "Simple":
             return self.simplified(sentence)
