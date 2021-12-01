@@ -8,7 +8,9 @@
 import random
 import math
 
+import copy
 
+random.seed(94)
 # We've set up a suggested code structure, but feel free to change it. Just
 # make sure your code still works with the label.py and pos_scorer.py code
 # that we've supplied.
@@ -166,7 +168,7 @@ class Solver:
         grandParentWordTags = {}
        
         for each_sentence in data:
-            for i in range(1,len(each_sentence[0])-1):
+            for i in range(1,len(each_sentence[0])):
                 if not each_sentence[0][i] in grandParentWordTags.keys():
                     grandParentWordTags[each_sentence[0][i]] = {}
                     for j in self.prob:
@@ -195,20 +197,65 @@ class Solver:
     def gibbsSampling(self,no_samples,sentence):
         x = [[] for _ in range(no_samples)]
         x[0]= [random.choice(self.prob) for _ in range(len(sentence))]
+        y = []
+        pr = []
+        max_pr = 0
+        p=1
+        max_p = 0
+        max_p_seq = copy.deepcopy(x[0])
+        
+        # print('Emission pr - ',self.e_pr)
+        # print('Transition pr - ',self.t_pr)
+        # print('Grandparent POS - ',self.grandParentPOS)
+        # print('Grandparent tag - ',self.grandParentWordTag)
 
-        # for i in range(1,no_samples):
-        #     x[i] = x[i-1]
-        #     for j in range(len(x[0])):
-        #         #calc P(x[i][j]|remaining)
-        #         print()
-
-        #make it x[1000]
-        return x[0]
+        for i in range(1,no_samples):#number of samples
+            x[i] = x[i-1]
+            for j in range(len(sentence)):#number of words in the sentence
+                # print(max_p_seq)
+                x[i] = copy.deepcopy(max_p_seq)
+                max_p = 0
+                for p in self.prob:
+                    x[i][j] = p
+                    # print(x[i])
+                    p = 1
+                    
+                    # print(p)
+                    # print(sentence[j])
+                    # print(self.corpus.keys())
+                    if sentence[j] in self.corpus.keys():
+                        # print('In parent if')
+                        # print(self.e_pr.keys())
+                        if j ==0:
+                            if sentence[0] in self.corpus.keys():
+                                p = p * self.e_pr[sentence[0]][x[i][0]] 
+                        else:
+                            # print('In else')
+                            if sentence[0] in self.corpus.keys():
+                                p = p * self.e_pr[sentence[0]][x[i][0]] 
+                            for q in range(1,j+1):
+                                if sentence[q] in self.e_pr.keys() and  sentence[q] in self.grandParentWordTag.keys():
+                                    p = p * self.e_pr[sentence[q]][x[i][q]]*self.grandParentWordTag[sentence[q]][x[i][q-1]]
+                            # print('1',p)
+                            if j == 1:
+                                p = p * self.t_pr[x[i][0]][x[i][1]]
+                            else : 
+                                p = p * self.t_pr[x[i][0]][x[i][1]]
+                                for k in range(2,j+1):
+                                    p = p * self.t_pr[x[i][k-1]][x[i][k]] * self.grandParentPOS[x[i][k-2]][x[i][k]]
+                                if j == len(sentence):
+                                    p = p * self.t_pr[x[i][j-1]][x[i][j]]
+                            # print('2',p)
+                    # print(p)
+                    #Second word
+        
+        return max_p_seq
 
     def complex_mcmc(self, sentence):
         # MCMC inference code 
+        s = self.gibbsSampling(2,sentence)
         
-        return self.gibbsSampling(1000,sentence)
+        return s
     # This solve() method is called by label.py, so you should keep the interface the
     #  same, but you can change the code itself. 
     # It should return a list of part-of-speech labelings of the sentence, one
