@@ -1,6 +1,6 @@
 #!/usr/local/bin/python3
 #
-# Authors: [PLEASE PUT YOUR NAMES AND USER IDS HERE]
+# Authors: Purnima Surve:pursurve Tejaswy Ghanta:lghanta Shruti Gutta: shrgutta
 #
 # Ice layer finder
 # Based on skeleton code by D. Crandall, November 2021
@@ -11,11 +11,12 @@ from numpy import *
 from scipy.ndimage import filters
 import sys
 import imageio
+import numpy as np
 
-# calculate "Edge strength map" of an image                                                                                                                                      
+# calculate "Edge strength map" of an image
 def edge_strength(input_image):
-    grayscale = array(input_image.convert('L'))
-    filtered_y = zeros(grayscale.shape)
+    grayscale = array(input_image.convert('L'))                       #for converting to greyscale
+    filtered_y = zeros(grayscale.shape)                               #pixel length as zero for the 2d matrix
     filters.sobel(grayscale,0,filtered_y)
     return sqrt(filtered_y**2)
 
@@ -27,6 +28,80 @@ def edge_strength(input_image):
 # - color is a (red, green, blue) color triple (e.g. (255, 0, 0) would be pure red
 # - thickness is thickness of line in pixels
 #
+# compute edge strength mask
+def bayes_net_airice(norm_edge_strength):
+    return argmax(norm_edge_strength, axis=0)                        #returns the highest edge strength index columnwise
+
+def bayes_net_icerock(norm_edge_strength):                           #returns the second highest edge strength index columnwise
+    maxy=[]
+    for j in range(len(norm_edge_strength[0])):
+        max1 = 0
+        max2 = 0
+        for i in range(len(norm_edge_strength)):
+            if norm_edge_strength[i][j] > max1:
+                max1 = norm_edge_strength[i][j]
+        for i in range(len(norm_edge_strength)):
+            if norm_edge_strength[i][j] < max1 and max1-norm_edge_strength[i][j] > 10:
+                if norm_edge_strength[i][j] > max2:
+                    max2 = i
+        maxy.append(max2)
+    return maxy
+
+
+def transprob(prev_row, col):                                        #returns the transition probabilities
+    # dist = [abs(prev_row - row) if abs(row - prev_row) < 12 else 0.001 for row in range(len(col))]
+    #
+    # temp = [1 /(t + 1) if t != 0.001  else 0.001 for t in dist]
+    temp = [0.9 if abs(row - prev_row) < 12 else 0.001 for row in range(len(col))]
+    return asarray(reshape(temp, (-1, 1)), dtype='float32')
+
+
+def emission_probability(col):                                      #returns emission probabilities
+     eprob = [c/sum(col) for c in col]
+
+     return asarray(eprob).reshape(len(eprob), 1)
+
+
+def viterbii(norm_edge_strength,initial_row,initial_col):           #viterbi algorithm for air-ice boundary
+    len_col = norm_edge_strength.shape[1]
+    v1 = [0] * len_col
+    for col in range(initial_col, len_col):
+        if col == initial_col:
+
+            v1[initial_col] = initial_row
+        else:
+
+            pij = transprob(v1[col-1], norm_edge_strength[:,col])
+            vt = norm_edge_strength[v1[col - 1], col-1]/sum(norm_edge_strength[:,col-1])
+            v1[col] = argmax(emission_probability(norm_edge_strength[:,col])*vt*pij)
+
+    for col in range(initial_col - 1, -1, -1):
+
+        pij = transprob(v1[col+1],norm_edge_strength[:,col])
+        vt = norm_edge_strength[v1[col + 1], col + 1]/sum(norm_edge_strength[:,col+1])
+        v1[col] = argmax(emission_probability(norm_edge_strength[:,col])*vt*pij)
+    return v1
+
+def viterbii_rock(norm_edge_strength,initial_row,initial_col):      #viterbi algorithm for ice-rock boundary
+    len_col=norm_edge_strength.shape[1]
+    v1 = [0]*len_col
+    for col in range(initial_col,len_col):
+        if col == initial_col:
+            v1[initial_col] = initial_row
+        else:
+
+            pij = transprob(v1[col-1], norm_edge_strength[:,col])
+            vt = norm_edge_strength[v1[col - 1], col-1]/sum(norm_edge_strength[:,col-1])
+            v1[col] = argmax(emission_probability(norm_edge_strength[:,col])*vt*pij)
+
+    for col in range(initial_col - 1, -1, -1):
+
+        pij = transprob(v1[col+1],norm_edge_strength[:,col])
+        vt = norm_edge_strength[v1[col + 1], col + 1]/sum(norm_edge_strength[:,col+1])
+        v1[col] = argmax(emission_probability(norm_edge_strength[:,col])*vt*pij)
+    return v1
+
+
 def draw_boundary(image, y_coordinates, color, thickness):
     for (x, y) in enumerate(y_coordinates):
         for t in range( int(max(y-int(thickness/2), 0)), int(min(y+int(thickness/2), image.size[1]-1 )) ):
@@ -40,7 +115,7 @@ def draw_asterisk(image, pt, color, thickness):
     return image
 
 
-# Save an image that superimposes three lines (simple, hmm, feedback) in three different colors 
+# Save an image that superimposes three lines (simple, hmm, feedback) in three different colors
 # (yellow, blue, red) to the filename
 def write_output_image(filename, image, simple, hmm, feedback, feedback_pt):
     new_image = draw_boundary(image, simple, (255, 255, 0), 2)
@@ -59,30 +134,77 @@ if __name__ == "__main__":
         raise Exception("Program needs 5 parameters: input_file airice_row_coord airice_col_coord icerock_row_coord icerock_col_coord")
 
     input_filename = sys.argv[1]
+
     gt_airice = [ int(i) for i in sys.argv[2:4] ]
+
     gt_icerock = [ int(i) for i in sys.argv[4:6] ]
 
-    # load in image 
+    # load in image
     input_image = Image.open(input_filename).convert('RGB')
     image_array = array(input_image.convert('L'))
 
+
     # compute edge strength mask -- in case it's helpful. Feel free to use this.
     edge_strength = edge_strength(input_image)
-    imageio.imwrite('edges.png', uint8(255 * edge_strength / (amax(edge_strength))))
+    norm_edge_strength = uint8(255 * edge_strength / (amax(edge_strength)))
+    imageio.imwrite('edges.png', norm_edge_strength)
+
 
     # You'll need to add code here to figure out the results! For now,
     # just create some random lines.
-    airice_simple = [ image_array.shape[0]*0.25 ] * image_array.shape[1]
-    airice_hmm = [ image_array.shape[0]*0.5 ] * image_array.shape[1]
-    airice_feedback= [ image_array.shape[0]*0.75 ] * image_array.shape[1]
 
-    icerock_simple = [ image_array.shape[0]*0.25 ] * image_array.shape[1]
-    icerock_hmm = [ image_array.shape[0]*0.5 ] * image_array.shape[1]
-    icerock_feedback= [ image_array.shape[0]*0.75 ] * image_array.shape[1]
+    ridgeLength = bayes_net_airice(norm_edge_strength)
+    ridgeLength2 = bayes_net_icerock(norm_edge_strength)
+    # imageio.imwrite("output_airice.png", draw_boundary(input_image, ridgeLength, (255, 255, 0), 5))
+    # imageio.imwrite("output_icerock.png", draw_boundary(input_image, ridgeLength2, (255, 255, 0), 5))
+
+    initial_row = bayes_net_airice(norm_edge_strength)
+    ridgeV = viterbii(norm_edge_strength,initial_row[0],0)
+    #imageio.imwrite("output_airice.png", draw_boundary(input_image, ridgeV, (0, 0, 255), 5))
+
+    initial_rowr = bayes_net_icerock(norm_edge_strength)
+    ridgeVrock = viterbii_rock(norm_edge_strength,initial_rowr[0],0)
+    #imageio.imwrite("output_icerock.png", draw_boundary(input_image, ridgeVrock, (0, 0, 255), 5))
+
+
+
+#human input part
+    #coll=4
+    #edge_strength_1= norm_edge_strength[:,0:coll]
+    #edge_strength_2=norm_edge_strength[:,coll:edge_strength.shape[1]]
+    #
+    # #initial probability
+
+    #if coll != 0:
+    #    edge_strength_1 = np.flip(edge_strength_1, 1)
+
+    #w_part3 = np.ones(edge_strength.shape[0])
+    #w_part3[2] = 0.01
+
+    #final_path_part1=viterbii(edge_strength_1,w_part3,4)[::-1]
+    #print("work in prg")
+    #final_path_part2=viterbii(edge_strength_2,w_part3,4)
+
+    #final_path_a3=final_path_part1[:-1]+final_path_part2
+    #
+    #imageio.imwrite("airice.png", draw_edge(input_image, ridgeV, (0, 255, 0), 5))
+    # initial_row, initial_col = int(gt_airice)
+    # ridgeH = viterbii(norm_edge_strength)
+    # imageio.imwrite("output_human.jpg", draw_edge(input_image, ridgeH, (0, 255, 0), 5))
+
+    # airice_simple = [ image_array.shape[0]*0.25 ] * image_array.shape[1]
+    # airice_hmm = [ image_array.shape[0]*0.5 ] * image_array.shape[1]
+    # airice_feedback= [ image_array.shape[0]*0.75 ] * image_array.shape[1]
+    #
+    # icerock_simple = [ image_array.shape[0]*0.25 ] * image_array.shape[1]
+    # icerock_hmm = [ image_array.shape[0]*0.5 ] * image_array.shape[1]
+    # icerock_feedback= [ image_array.shape[0]*0.75 ] * image_array.shape[1]
+    a=[]
+    b=[]
 
     # Now write out the results as images and a text file
-    write_output_image("air_ice_output.png", input_image, airice_simple, airice_hmm, airice_feedback, gt_airice)
-    write_output_image("ice_rock_output.png", input_image, icerock_simple, icerock_hmm, icerock_feedback, gt_icerock)
+    write_output_image("air_ice_output.png", input_image, ridgeLength, ridgeV, a, gt_airice)
+    write_output_image("ice_rock_output.png", input_image, ridgeLength2, ridgeVrock, b, gt_icerock)
     with open("layers_output.txt", "w") as fp:
-        for i in (airice_simple, airice_hmm, airice_feedback, icerock_simple, icerock_hmm, icerock_feedback):
+        for i in (ridgeLength, ridgeV, a, ridgeLength2, ridgeVrock, b):
             fp.write(str(i) + "\n")
