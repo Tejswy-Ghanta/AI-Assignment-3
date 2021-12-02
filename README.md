@@ -1,7 +1,7 @@
 # lghanta-pursurve-shrgutta-a3
 a3 created for lghanta-pursurve-shrgutta
 
-                                                                    Part 2-Ice tracking
+                                                                Part 2-Ice tracking
 1)In the first subpart, we plotted the air ice and the ice rock boundary using Bayes net algorithm. Since if the edge strength is higher,the probability of the pixel being a point 
 on the boundary is higher, we thus found 2 pixels with the maximum edge strength for each column which were minimum 10 pixels aparts. I have the used the pixels with the largest 
 edge strengths in each column to plot the air-ice boundary and the pixels with the second largest edge strengths in each column to plot the ice-rock boundary.
