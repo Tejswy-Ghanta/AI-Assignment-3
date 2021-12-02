@@ -8,6 +8,7 @@ edge strengths in each column to plot the air-ice boundary and the pixels with t
 
 2)The first approach does not give accurate boundary lines for few images. We can get more accurate boundary lines using the Viterbi algorithm. For the viterbi algorithm we are 
 considering:
+
 -Initial probability: We have calcuted the initial probabilities using the bayes net algorithm from subpart 1.
 
 -Transition probability: For finding the transition probability, I have taken the taken the previous row and the current column in consideration. Since we want a smooth boundary, 
