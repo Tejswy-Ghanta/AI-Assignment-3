@@ -1,7 +1,27 @@
-# lghanta-pursurve-shrgutta-a3
+# Assignment 3 
 a3 created for lghanta-pursurve-shrgutta
 
-                                                                Part 2-Ice tracking
+## Part 1 - Part-of-speech(POS) tagging
+Parts of Speech tagging can be done in many different ways out of which the 3 methods implemented are -
+1. Simple version - 
+
+In simple version, just the emission probabilities(P(W|S)) are considered. These emission probabilities are calculated from the train data. Each word has emission probabilities w.r.to all the possible 12 Parts of speech. Based on these probabilities, each word in the sentence is assigned a Parts of speech that has the maximum emission probability. A sequence of POS is returned for the given test sentence. 
+
+- Percent of words correctly detected in test data is :  93.95%
+- Percent of sentences correctly detected in test data is : 47.5%
+
+2. HMM version using Viterbi - 
+
+In this version, transition probabilities (P(S[i]|S[i+1])), emission probabilities (P(W|S)), initial probabilities (P0) are considered. All the required probabilities are calculated from the train data. A Viterbi chain is formed based on all the possible POS tagging for each word using the concept of Dynamic programming. At every step ie predicting the POS for each word, we consider the maximum probabilty value of considering that route - prior probability * emission probability * tranisition probability. Maximising the probabilty at each and every step will result in a sequence of POS for given sentence. This is different from simple version in terms of - transiion probability ie there's some significance for the sequence of occurance of POS as learnt from the train data. Hence, transition probabiity also influences the final POS tagged to a word in a sequence depending on its parent word tag. The Bayes net used to solve this is the one given in question.
+
+3. Complex Bayes Net (MCMC) using Gibbs Sampling -
+
+In this version, there's a complex Bayes net to honor all the dependencies which include - prior/initial probabilities, emission probabilities, transition probabilities, grandChild transition probabilityies, grandParent emission probabilities.
+
+
+
+
+## Part 2 - Ice Tracking
 1)In the first subpart, we plotted the air ice and the ice rock boundary using Bayes net algorithm. Since if the edge strength is higher,the probability of the pixel being a point 
 on the boundary is higher, we thus found 2 pixels with the maximum edge strength for each column which were minimum 10 pixels aparts. I have the used the pixels with the largest 
 edge strengths in each column to plot the air-ice boundary and the pixels with the second largest edge strengths in each column to plot the ice-rock boundary.
