@@ -10,6 +10,8 @@ import math
 
 import copy
 
+import numpy as np
+
 random.seed(94)
 # We've set up a suggested code structure, but feel free to change it. Just
 # make sure your code still works with the label.py and pos_scorer.py code
@@ -66,7 +68,7 @@ class Solver:
         POS_list = []
         for i in sentence:
             if i not in self.corpus.keys():
-                #words not in corpus? 
+                #words not in corpus? - feature func - linguistic rules - first letter capital...
                 POS_list.append('noun')
             else:
                 max_key = max(self.corpus[i], key=self.corpus[i].get)
@@ -137,6 +139,9 @@ class Solver:
                     max_prob = max_tr_prob * emit_p[observations[t]][st]
                 V[t][st] = {"prob": max_prob, "prev": prev_st_selected}
 
+        # for line in self.dptable(V,observations):
+        #     print(line)
+
         viterbi_seq = []
         max_prob = 0.0
         best_st = None
@@ -151,6 +156,7 @@ class Solver:
             viterbi_seq.insert(0, V[t + 1][previous]["prev"])
             previous = V[t + 1][previous]["prev"]
 
+        # print("%40s: %s" % ("Most likely sequence by Viterbi:", str(viterbi_seq)))
         return viterbi_seq
 
     def getParentWordProbability(self,data):
@@ -185,55 +191,83 @@ class Solver:
 
     def gibbsSampling(self,no_samples,sentence):
         x = [[] for _ in range(no_samples)]
+        s_len = len(sentence)
+        # print('s len - ',s_len)
         x[0]= [random.choice(self.prob) for _ in range(len(sentence))]
         p=1
         max_p = 0
         max_p_seq = copy.deepcopy(x[0])
+        pr_samples = []
+        pr = []
+        all_samples = []
+        test = 0
+        pr1 = []
+        # print('Emission pr -',self.e_pr)
+        # print('\nTransition pr - ',self.t_pr)
+        # print('\nGrandparent words-',self.grandParentWordTag)
+        # print('\nGrandparent POS- ',self.grandParentPOS)
         
-
         for i in range(1,no_samples):#number of samples
             x[i] = x[i-1]
             for j in range(len(sentence)):#number of words in the sentence
-                # print(max_p_seq)
+               
                 x[i] = copy.deepcopy(max_p_seq)
-                max_p = 0
+                pr.clear()
+                all_samples.append(copy.deepcopy(pr_samples))
+                pr_samples.clear()
                 for p in self.prob:
                     x[i][j] = p
-                  
+                    pr_samples.append(copy.deepcopy(x[i]))
+                   
                     p = 1
-                    
+                   
                     if sentence[j] in self.corpus.keys():
-                      
                         if j ==0:
-                            if sentence[0] in self.corpus.keys():
-                                p = p * self.e_pr[sentence[0]][x[i][0]] 
-                        else:
-                        
-                            if sentence[0] in self.corpus.keys():
-                                p = p * self.e_pr[sentence[0]][x[i][0]] 
-                            for q in range(1,j+1):
-                                if sentence[q] in self.e_pr.keys() and  sentence[q] in self.grandParentWordTag.keys():
-                                    p = p * self.e_pr[sentence[q]][x[i][q]]*self.grandParentWordTag[sentence[q]][x[i][q-1]]
-         
-                            if j == 1:
-                                p = p * self.t_pr[x[i][0]][x[i][1]]
-                            else : 
-                                p = p * self.t_pr[x[i][0]][x[i][1]]
-                                for k in range(2,j+1):
-                                    p = p * self.t_pr[x[i][k-1]][x[i][k]] * self.grandParentPOS[x[i][k-2]][x[i][k]]
-                                if j == len(sentence):
-                                    p = p * self.t_pr[x[i][j-1]][x[i][j]]
+                            if(len(sentence) == 1):
+                                p = self.e_pr[sentence[j]][x[i][j]] * 1/12
+                            else:
+                                if sentence[j] in self.e_pr.keys() and sentence[j] in self.grandParentWordTag.keys() and sentence[1] in self.grandParentWordTag.keys():
+                                    p = p * self.e_pr[sentence[j]][x[i][j]] * self.grandParentWordTag[sentence[j+1]][x[i][j]] * 1/12
+                                if(len(sentence) >= 3 ): 
+                                    p = p * self.t_pr[x[i][0]][x[i][1]] * self.grandParentPOS[x[i][0]][x[i][2]]
+                                else:
+                                    p = p * self.t_pr[x[i][0]][x[i][1]]
 
-                    if p>max_p:
-                        # print('MAX')
-                        max_p = p
-                        max_p_seq = copy.deepcopy(x[i])
+                        elif j == s_len - 2:
+                            if sentence[j] in self.e_pr.keys() and sentence[j] in self.grandParentWordTag.keys() and sentence[j+1] in self.grandParentWordTag.keys():
+                                p = p * self.e_pr[sentence[j]][x[i][j]] * self.grandParentWordTag[sentence[j+1]][x[i][j]]
+                            p = p *self.t_pr[x[i][j-1]][x[i][j]] * self.t_pr[x[i][j]][x[i][j+1]] * self.grandParentPOS[x[i][j-2]][x[i][j]]
+
+                        elif j == s_len - 1:
+                            if sentence[j] in self.e_pr.keys():
+                                p = p * self.e_pr[sentence[j]][x[i][j]]
+                            p = p *self.t_pr[x[i][j-1]][x[i][j]] * self.t_pr[x[i][j-2]][x[i][j]]
+
+                        elif j == 1:
+                            if sentence[j] in self.e_pr.keys() and sentence[j] in self.grandParentWordTag.keys() and sentence[j+1] in self.grandParentWordTag.keys():
+                                p = p * self.e_pr[sentence[j]][x[i][j]] * self.grandParentWordTag[sentence[j+1]][x[i][j]]
+                            p = p *self.t_pr[x[i][j-1]][x[i][j]] * self.t_pr[x[i][j]][x[i][j+1]] * self.grandParentPOS[x[i][j]][x[i][j+2]]
+
+                        else:
+                            if sentence[j] in self.e_pr.keys() and sentence[j] in self.grandParentWordTag.keys() and sentence[j+1] in self.grandParentWordTag.keys():
+                                p = p * self.e_pr[sentence[j]][x[i][j]] * self.grandParentWordTag[sentence[j+1]][x[i][j]]
+                            p = p *self.t_pr[x[i][j-1]][x[i][j]] * self.t_pr[x[i][j]][x[i][j+1]] * self.grandParentPOS[x[i][j-2]][x[i][j]] * self.grandParentPOS[x[i][j]][x[i][j+2]]     
+                            
+                    pr.append(p)
+                   
+                if sum(pr)!=0:
+                    pr1 = [f/sum(pr) for f in pr]
+                else:
+                    pr1 = [1/12 for _ in pr]
+                # print(pr1)
+                test = np.random.choice([0,1,2,3,4,5,6,7,8,9,10,11],p=pr1)
+                max_p_seq = pr_samples[test]
         
         return max_p_seq
 
     def complex_mcmc(self, sentence):
         # MCMC inference code 
-        s = self.gibbsSampling(50,sentence)
+        s = self.gibbsSampling(20,sentence)
         
         return s
     # This solve() method is called by label.py, so you should keep the interface the
