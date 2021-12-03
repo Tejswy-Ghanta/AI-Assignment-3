@@ -66,7 +66,7 @@ class Solver:
         POS_list = []
         for i in sentence:
             if i not in self.corpus.keys():
-                #words not in corpus? - feature func - linguistic rules - first letter capital...
+                #words not in corpus? 
                 POS_list.append('noun')
             else:
                 max_key = max(self.corpus[i], key=self.corpus[i].get)
@@ -137,9 +137,6 @@ class Solver:
                     max_prob = max_tr_prob * emit_p[observations[t]][st]
                 V[t][st] = {"prob": max_prob, "prev": prev_st_selected}
 
-        # for line in self.dptable(V,observations):
-        #     print(line)
-
         viterbi_seq = []
         max_prob = 0.0
         best_st = None
@@ -154,7 +151,6 @@ class Solver:
             viterbi_seq.insert(0, V[t + 1][previous]["prev"])
             previous = V[t + 1][previous]["prev"]
 
-        # print("%40s: %s" % ("Most likely sequence by Viterbi:", str(viterbi_seq)))
         return viterbi_seq
 
     def getParentWordProbability(self,data):
@@ -194,10 +190,6 @@ class Solver:
         max_p = 0
         max_p_seq = copy.deepcopy(x[0])
         
-        # print('Emission pr - ',self.e_pr)
-        # print('Transition pr - ',self.t_pr)
-        # print('Grandparent POS - ',self.grandParentPOS)
-        # print('Grandparent tag - ',self.grandParentWordTag)
 
         for i in range(1,no_samples):#number of samples
             x[i] = x[i-1]
@@ -207,26 +199,22 @@ class Solver:
                 max_p = 0
                 for p in self.prob:
                     x[i][j] = p
-                    # print(x[i])
+                  
                     p = 1
                     
-                    # print(p)
-                    # print(sentence[j])
-                    # print(self.corpus.keys())
                     if sentence[j] in self.corpus.keys():
-                        # print('In parent if')
-                        # print(self.e_pr.keys())
+                      
                         if j ==0:
                             if sentence[0] in self.corpus.keys():
                                 p = p * self.e_pr[sentence[0]][x[i][0]] 
                         else:
-                            # print('In else')
+                        
                             if sentence[0] in self.corpus.keys():
                                 p = p * self.e_pr[sentence[0]][x[i][0]] 
                             for q in range(1,j+1):
                                 if sentence[q] in self.e_pr.keys() and  sentence[q] in self.grandParentWordTag.keys():
                                     p = p * self.e_pr[sentence[q]][x[i][q]]*self.grandParentWordTag[sentence[q]][x[i][q-1]]
-                            # print('1',p)
+         
                             if j == 1:
                                 p = p * self.t_pr[x[i][0]][x[i][1]]
                             else : 
@@ -235,15 +223,11 @@ class Solver:
                                     p = p * self.t_pr[x[i][k-1]][x[i][k]] * self.grandParentPOS[x[i][k-2]][x[i][k]]
                                 if j == len(sentence):
                                     p = p * self.t_pr[x[i][j-1]][x[i][j]]
-                            # print('2',p)
-                    # print(p)
-                    #Second word
+
                     if p>max_p:
                         # print('MAX')
                         max_p = p
                         max_p_seq = copy.deepcopy(x[i])
-                        # print(p)
-                        # print(max_p_seq)
         
         return max_p_seq
 
