@@ -104,13 +104,6 @@ class Solver:
 
         return transition_p
 
-    # def dptable(self,V,observed):
-
-    #     for state in V[0]:
-    #         yield"%.7s: " % state + " ".join("%.7s" % ("%f" % v[state]["prob"]) for v in V)
-        # print("%40s: %s " % ("Observed sequence", str(observed)))
-        # N=len(observed)
-
     def hmm_viterbi(self, sentence):
         # problem definition
         states = ('adj', 'adv', 'adp', 'conj', 'det', 'noun', 'num', 'pron', 'prt', 'verb', 'x', '.')
@@ -197,9 +190,6 @@ class Solver:
     def gibbsSampling(self,no_samples,sentence):
         x = [[] for _ in range(no_samples)]
         x[0]= [random.choice(self.prob) for _ in range(len(sentence))]
-        y = []
-        pr = []
-        max_pr = 0
         p=1
         max_p = 0
         max_p_seq = copy.deepcopy(x[0])
@@ -248,12 +238,18 @@ class Solver:
                             # print('2',p)
                     # print(p)
                     #Second word
+                    if p>max_p:
+                        # print('MAX')
+                        max_p = p
+                        max_p_seq = copy.deepcopy(x[i])
+                        # print(p)
+                        # print(max_p_seq)
         
         return max_p_seq
 
     def complex_mcmc(self, sentence):
         # MCMC inference code 
-        s = self.gibbsSampling(2,sentence)
+        s = self.gibbsSampling(50,sentence)
         
         return s
     # This solve() method is called by label.py, so you should keep the interface the
@@ -270,4 +266,3 @@ class Solver:
             return self.complex_mcmc(sentence)
         else:
             print("Unknown algo!")
-
