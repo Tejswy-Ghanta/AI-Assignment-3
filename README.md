@@ -44,22 +44,22 @@ in that column.
 We then use the above probabilities in the Viterbi algorithm for plotting the air-ice and the ice-rock boundary.
 
 
-PART 3 : Reading text
+## PART 3 : Reading text
 
-Given: 
+# Given: 
 1. An image which contains all the possible characters in the test image (train image)
 2. Test image, from which we have to recognize the character and return
 3. A training text file, used to train the data or generate transition probabilities for Viterbi procedure
 
-To Do:
+# To Do:
 Recognize characters from the test image given using:
 1. Simple Bayes Net
 2. Viterbi (HMM)
 
-Simple Bayes Net:
+# Simple Bayes Net:
 This is calculated by calculating emission probabilities by comparing each and every character of each character and taking three different counts. And have set different probability for matched, mismatched and empty and created a value by summing on these three probabilities.
 
-Viterbi :
+# Viterbi :
 Start state: These are the possible 73 states given in the training image, which include alphabets capital and small, number and few special characters.
 Initial Probabilities: These are the initial probabilities where we calculate the probability of each character the training test file (total number of occurrences of that character/ total number of characters in the text file)
 Emission Probabilities: These are the probabilities 
