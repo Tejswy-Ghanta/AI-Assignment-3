@@ -18,7 +18,7 @@ In this version, transition probabilities (P(S[i]|S[i+1])), emission probabiliti
 
 In this version, there's a complex Bayes net to honor all the dependencies which include - prior/initial probabilities, emission probabilities, transition probabilities, grandChild transition probabilityies, grandParent emission probabilities.
 
-
+In Gibbs sampling, we feed the number of iterations to perform. Based on the Bayes net and respective probablities, samples are generated starting from a random sample. Number of samples generated is based on the length of sentence and the number of iterations. In each iteration, we sample a word in the sentence letting other words being constant.
 
 
 ## Part 2 - Ice Tracking
