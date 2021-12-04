@@ -43,3 +43,29 @@ when the the probabilities of the pixels closer were taken near to 1 and and the
 in that column.
 We then use the above probabilities in the Viterbi algorithm for plotting the air-ice and the ice-rock boundary.
 
+
+PART 3 : Reading text
+
+Given: 
+1. An image which contains all the possible characters in the test image (train image)
+2. Test image, from which we have to recognize the character and return
+3. A training text file, used to train the data or generate transition probabilities for Viterbi procedure
+
+To Do:
+Recognize characters from the test image given using:
+1. Simple Bayes Net
+2. Viterbi (HMM)
+
+Simple Bayes Net:
+This is calculated by calculating emission probabilities by comparing each and every character of each character and taking three different counts. And have set different probability for matched, mismatched and empty and created a value by summing on these three probabilities.
+
+Viterbi :
+Start state: These are the possible 73 states given in the training image, which include alphabets capital and small, number and few special characters.
+Initial Probabilities: These are the initial probabilities where we calculate the probability of each character the training test file (total number of occurrences of that character/ total number of characters in the text file)
+Emission Probabilities: These are the probabilities 
+Transition Probabilities: These are the probability of next possible occurrence of that character after the previous character in the test image.
+Observations: I have considered the position number of each character in the test file.
+
+Firstly, I have created viterbi tables, left to right for transition and emission probabilities and then backtracked to find the most likely state sequence or maximum probability state in a backward direction.
+
+In this case, I have minimized Viterbi because the training data and test images are not similar. I thought of creating my own training data using the sample test images given, but I thought that would not be the appropriate solution.
