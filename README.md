@@ -43,6 +43,8 @@ when the the probabilities of the pixels closer were taken near to 1 and and the
 in that column.
 We then use the above probabilities in the Viterbi algorithm for plotting the air-ice and the ice-rock boundary.
 
+3)Human feedback: Here we have passed user inputs into the algorithm to generate the air-ice and the ice-rock boundary.
+
 
 ## PART 3 : Reading text
 
