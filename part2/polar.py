@@ -67,38 +67,40 @@ def viterbii(norm_edge_strength,initial_row,initial_col):           #viterbi alg
     v1 = [0] * len_col
     for col in range(initial_col, len_col):
         if col == initial_col:
-
-            v1[initial_col] = initial_row
+            v1[initial_col] = initial_row                           #Adding the initial probability using input from bayes net algorithm
         else:
 
             pij = transprob(v1[col-1], norm_edge_strength[:,col])
-            vt = norm_edge_strength[v1[col - 1], col-1]/sum(norm_edge_strength[:,col-1])
-            v1[col] = argmax(emission_probability(norm_edge_strength[:,col])*vt*pij)
+            vtr = norm_edge_strength[v1[col - 1], col-1]/sum(norm_edge_strength[:,col-1])
+            v1[col] = argmax(emission_probability(norm_edge_strength[:,col])*vtr*pij)
 
     for col in range(initial_col - 1, -1, -1):
 
         pij = transprob(v1[col+1],norm_edge_strength[:,col])
-        vt = norm_edge_strength[v1[col + 1], col + 1]/sum(norm_edge_strength[:,col+1])
-        v1[col] = argmax(emission_probability(norm_edge_strength[:,col])*vt*pij)
+        vtr = norm_edge_strength[v1[col + 1], col + 1]/sum(norm_edge_strength[:,col+1])
+        v1[col] = argmax(emission_probability(norm_edge_strength[:,col])*vtr*pij)
     return v1
 
-def viterbii_rock(norm_edge_strength,initial_row,initial_col):      #viterbi algorithm for ice-rock boundary
+
+def viterbii_humanfeed(norm_edge_strength,initial_row,initial_col):      #viterbi algorithm for human feedback
     len_col=norm_edge_strength.shape[1]
     v1 = [0]*len_col
+    if initial_row == gt_icerock[0]:
+        v1[gt_airice[1]] = 0
     for col in range(initial_col,len_col):
         if col == initial_col:
-            v1[initial_col] = initial_row
+            v1[initial_col] = 1
         else:
 
             pij = transprob(v1[col-1], norm_edge_strength[:,col])
-            vt = norm_edge_strength[v1[col - 1], col-1]/sum(norm_edge_strength[:,col-1])
-            v1[col] = argmax(emission_probability(norm_edge_strength[:,col])*vt*pij)
+            vtr = norm_edge_strength[v1[col - 1], col-1]/sum(norm_edge_strength[:,col-1])
+            v1[col] = argmax(emission_probability(norm_edge_strength[:,col])*vtr*pij)
 
     for col in range(initial_col - 1, -1, -1):
 
         pij = transprob(v1[col+1],norm_edge_strength[:,col])
-        vt = norm_edge_strength[v1[col + 1], col + 1]/sum(norm_edge_strength[:,col+1])
-        v1[col] = argmax(emission_probability(norm_edge_strength[:,col])*vt*pij)
+        vtr = norm_edge_strength[v1[col + 1], col + 1]/sum(norm_edge_strength[:,col+1])
+        v1[col] = argmax(emission_probability(norm_edge_strength[:,col])*vtr*pij)
     return v1
 
 
@@ -123,7 +125,6 @@ def write_output_image(filename, image, simple, hmm, feedback, feedback_pt):
     new_image = draw_boundary(new_image, feedback, (255, 0, 0), 2)
     new_image = draw_asterisk(new_image, feedback_pt, (255, 0, 0), 2)
     imageio.imwrite(filename, new_image)
-
 
 
 # main program
@@ -163,34 +164,20 @@ if __name__ == "__main__":
     #imageio.imwrite("output_airice.png", draw_boundary(input_image, ridgeV, (0, 0, 255), 5))
 
     initial_rowr = bayes_net_icerock(norm_edge_strength)
-    ridgeVrock = viterbii_rock(norm_edge_strength,initial_rowr[0],0)
+    ridgeVrock = viterbii(norm_edge_strength,initial_rowr[0],0)
     #imageio.imwrite("output_icerock.png", draw_boundary(input_image, ridgeVrock, (0, 0, 255), 5))
 
 
 
 #human input part
-    #coll=4
-    #edge_strength_1= norm_edge_strength[:,0:coll]
-    #edge_strength_2=norm_edge_strength[:,coll:edge_strength.shape[1]]
-    #
-    # #initial probability
 
-    #if coll != 0:
-    #    edge_strength_1 = np.flip(edge_strength_1, 1)
+    human_airice=viterbii_humanfeed(norm_edge_strength,gt_airice[0],gt_airice[1])
+    # imageio.imwrite("lala.png", draw_boundary(input_image, final_path_part1, (255, 0, 0), 5))
 
-    #w_part3 = np.ones(edge_strength.shape[0])
-    #w_part3[2] = 0.01
 
-    #final_path_part1=viterbii(edge_strength_1,w_part3,4)[::-1]
-    #print("work in prg")
-    #final_path_part2=viterbii(edge_strength_2,w_part3,4)
+    human_icerock = viterbii_humanfeed(norm_edge_strength, gt_icerock[0], gt_icerock[1])
+    # imageio.imwrite("lala.png", draw_boundary(input_image, final_path_part2, (255, 0, 0), 5))
 
-    #final_path_a3=final_path_part1[:-1]+final_path_part2
-    #
-    #imageio.imwrite("airice.png", draw_edge(input_image, ridgeV, (0, 255, 0), 5))
-    # initial_row, initial_col = int(gt_airice)
-    # ridgeH = viterbii(norm_edge_strength)
-    # imageio.imwrite("output_human.jpg", draw_edge(input_image, ridgeH, (0, 255, 0), 5))
 
     # airice_simple = [ image_array.shape[0]*0.25 ] * image_array.shape[1]
     # airice_hmm = [ image_array.shape[0]*0.5 ] * image_array.shape[1]
@@ -199,12 +186,11 @@ if __name__ == "__main__":
     # icerock_simple = [ image_array.shape[0]*0.25 ] * image_array.shape[1]
     # icerock_hmm = [ image_array.shape[0]*0.5 ] * image_array.shape[1]
     # icerock_feedback= [ image_array.shape[0]*0.75 ] * image_array.shape[1]
-    a=[]
-    b=[]
+
 
     # Now write out the results as images and a text file
-    write_output_image("air_ice_output.png", input_image, ridgeLength, ridgeV, a, gt_airice)
-    write_output_image("ice_rock_output.png", input_image, ridgeLength2, ridgeVrock, b, gt_icerock)
+    write_output_image("air_ice_output.png", input_image, ridgeLength, ridgeV, human_airice, gt_airice)
+    write_output_image("ice_rock_output.png", input_image, ridgeLength2, ridgeVrock, human_icerock, gt_icerock)
     with open("layers_output.txt", "w") as fp:
-        for i in (ridgeLength, ridgeV, a, ridgeLength2, ridgeVrock, b):
+        for i in (ridgeLength, ridgeV, human_airice, ridgeLength2, ridgeVrock, human_icerock):
             fp.write(str(i) + "\n")
